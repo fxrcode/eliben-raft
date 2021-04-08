@@ -86,7 +86,8 @@ type ConsensusModule struct {
 	// Persistent Raft state on all servers
 	currentTerm int
 	votedFor    int
-	log         []LogEntry
+	// fxr: note that Eliben used index-0 for log, so as nextIndex, etc.
+	log []LogEntry
 
 	// Volatile Raft state on all servers
 	commitIndex        int
@@ -112,6 +113,7 @@ func NewConsensusModule(id int, peerIds []int, server *Server, ready <-chan inte
 	cm.newCommitReadyChan = make(chan struct{}, 16)
 	cm.state = Follower
 	cm.votedFor = -1
+	// fxr: note that Eliben used index-0 for log, so as nextIndex, commitIndex, etc. Therefore -1 means nil
 	cm.commitIndex = -1
 	cm.lastApplied = -1
 	cm.nextIndex = make(map[int]int)
@@ -440,6 +442,8 @@ func (cm *ConsensusModule) startLeader() {
 	cm.state = Leader
 
 	for _, peerId := range cm.peerIds {
+		// fxrc: once elected, initialize volatile states: nextIndex[] & matchIndex[],
+		//	since Eli uses index-0 for log. So it's one-shift different from Raft paper
 		cm.nextIndex[peerId] = len(cm.log)
 		cm.matchIndex[peerId] = -1
 	}
@@ -466,6 +470,8 @@ func (cm *ConsensusModule) startLeader() {
 
 // leaderSendHeartbeats sends a round of heartbeats to all peers, collects their
 // replies and adjusts cm's state.
+//
+// fxrc: Eli explained in Replicating log entries
 func (cm *ConsensusModule) leaderSendHeartbeats() {
 	cm.mu.Lock()
 	savedCurrentTerm := cm.currentTerm
@@ -477,6 +483,7 @@ func (cm *ConsensusModule) leaderSendHeartbeats() {
 			ni := cm.nextIndex[peerId]
 			prevLogIndex := ni - 1
 			prevLogTerm := -1
+			// if there's logEntry in leader's log
 			if prevLogIndex >= 0 {
 				prevLogTerm = cm.log[prevLogIndex].Term
 			}
