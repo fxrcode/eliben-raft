@@ -483,7 +483,7 @@ func (cm *ConsensusModule) leaderSendHeartbeats() {
 			ni := cm.nextIndex[peerId]
 			prevLogIndex := ni - 1
 			prevLogTerm := -1
-			// if there's logEntry in leader's log
+			// fxrc: if there's logEntry in leader's log
 			if prevLogIndex >= 0 {
 				prevLogTerm = cm.log[prevLogIndex].Term
 			}
