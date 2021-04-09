@@ -559,6 +559,8 @@ func (cm *ConsensusModule) startLeader() {
 				// Reset timer to fire again after heartbeatTimeout.
 				t.Stop()
 				t.Reset(heartbeatTimeout)
+
+			// fxrc: part 3.
 			case _, ok := <-cm.triggerAEChan:
 				if ok {
 					doSend = true
